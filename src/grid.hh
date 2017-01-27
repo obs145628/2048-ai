@@ -10,16 +10,11 @@
 using grid_t = std::uint64_t;
 using index_t = std::uint64_t;
 using score_t = std::uint64_t;
+using move_t = int;
+using move_f = grid_t (*)(grid_t grid, score_t& score);
 
-enum class Move
-  {
-    LEFT,
-    RIGHT,
-    TOP,
-    BOTTOM
-  };
 
-static const score_t g_vals[] =
+static const score_t g_pows[] =
   {
     0,
     2,
@@ -39,7 +34,8 @@ static const score_t g_vals[] =
     32768
   };
 
-static const std::string g_strs[] =
+
+static const std::string GRID_LABELS[] =
   {
     "     ",
     "  2  ",
@@ -59,7 +55,8 @@ static const std::string g_strs[] =
     "32768",
   };
 
-static const char* g_fgs[] =
+
+static const char* GRID_FGS[] =
   {
     Shell::FG_DEFAULT,
     Shell::FG_BLACK,
@@ -79,7 +76,7 @@ static const char* g_fgs[] =
     Shell::FG_WHITE,
   };
 
-static const char* g_bgs[] =
+static const char* GRID_BGS[] =
   {
     Shell::BG_DEFAULT,
     Shell::BG_LGRAY,
@@ -99,6 +96,11 @@ static const char* g_bgs[] =
     Shell::BG_BLACK
   };
 
+static constexpr move_t GRID_LEFT = 0;
+static constexpr move_t GRID_RIGHT = 1;
+static constexpr move_t GRID_TOP = 2;
+static constexpr move_t GRID_BOTTOM = 3;
+
 
 inline index_t grid_get(grid_t grid, index_t pos)
 {
@@ -113,7 +115,7 @@ inline index_t grid_get(grid_t grid, index_t i, index_t j)
   return grid_get(grid, i * 4 + j);
 }
 
-inline bool grid_full(grid_t grid)
+inline bool grid_is_full(grid_t grid)
 {
   for (index_t i = 0; i < 16; ++i)
     if (grid_get(grid, i) == 0)
@@ -121,7 +123,7 @@ inline bool grid_full(grid_t grid)
   return true;
 }
 
-inline bool grid_finished(grid_t grid)
+inline bool grid_is_finished(grid_t grid)
 {
   for (index_t i = 0; i < 4; ++i)
     for (index_t j = 0; j < 4; ++j)
@@ -164,6 +166,20 @@ inline grid_t grid_set(grid_t grid, index_t i, index_t j, index_t val)
   return grid_set(grid, i * 4 + j, val);
 }
 
+inline grid_t grid_put(grid_t grid, index_t pos, index_t val)
+{
+  assert(pos < 16);
+  assert((grid | (val << (pos * 4))) == grid_set(grid, pos, val));
+  return grid | (val << (pos * 4));
+}
+
+inline grid_t grid_put(grid_t grid, index_t i, index_t j, index_t val)
+{
+  assert(i < 4);
+  assert(j < 4);
+  return grid_put(grid, i * 4 + j, val);
+}
+
 inline ShellSprite grid_to_sprite(grid_t grid)
 {
   Grid res(4, 4);
@@ -171,9 +187,9 @@ inline ShellSprite grid_to_sprite(grid_t grid)
     for (index_t j = 0; j < 4; ++j)
       {
         index_t val = grid_get(grid, i, j);
-        res.at(i, j) = g_strs[val];
-        res.fg_set(i, j, g_fgs[val]);
-        res.bg_set(i, j, g_bgs[val]);
+        res.at(i, j) = GRID_LABELS[val];
+        res.fg_set(i, j, GRID_FGS[val]);
+        res.bg_set(i, j, GRID_BGS[val]);
       }
   return res.to_sprite();
 }
@@ -187,14 +203,14 @@ inline grid_t grid_rand(Random& rand, grid_t grid)
       grid_t pos = rand.int32_get() % 16;
       if (grid_get(grid, pos))
         continue;
-      grid = grid_set(grid, pos, val);
+      grid = grid_put(grid, pos, val);
       break;
     }
 
   return grid;
 }
 
-inline grid_t grid_left(grid_t grid, score_t& score)
+inline grid_t grid_move_left(grid_t grid, score_t& score)
 {
   for (unsigned i = 0; i < 4; ++i)
     {
@@ -212,7 +228,7 @@ inline grid_t grid_left(grid_t grid, score_t& score)
             {
               lim = til;
               grid = grid_set(grid, i, til - 1, val + 1);
-              score += g_vals[val + 1];
+              score += g_pows[val + 1];
             }
 
           else
@@ -227,7 +243,7 @@ inline grid_t grid_left(grid_t grid, score_t& score)
   return grid;
 }
 
-inline grid_t grid_right(grid_t grid, score_t& score)
+inline grid_t grid_move_right(grid_t grid, score_t& score)
 {
   for (unsigned i = 0; i < 4; ++i)
     {
@@ -245,7 +261,7 @@ inline grid_t grid_right(grid_t grid, score_t& score)
             {
               lim = til;
               grid = grid_set(grid, i, til + 1, val + 1);
-              score += g_vals[val + 1];
+              score += g_pows[val + 1];
             }
 
           else
@@ -260,7 +276,7 @@ inline grid_t grid_right(grid_t grid, score_t& score)
   return grid;
 }
 
-inline grid_t grid_top(grid_t grid, score_t& score)
+inline grid_t grid_move_top(grid_t grid, score_t& score)
 {
   for (unsigned j = 0; j < 4; ++j)
     {
@@ -278,7 +294,7 @@ inline grid_t grid_top(grid_t grid, score_t& score)
             {
               lim = til;
               grid = grid_set(grid, til - 1, j, val + 1);
-              score += g_vals[val + 1];
+              score += g_pows[val + 1];
             }
 
           else
@@ -293,7 +309,7 @@ inline grid_t grid_top(grid_t grid, score_t& score)
   return grid;
 }
 
-inline grid_t grid_bottom(grid_t grid, score_t& score)
+inline grid_t grid_move_bottom(grid_t grid, score_t& score)
 {
   for (unsigned j = 0; j < 4; ++j)
     {
@@ -311,7 +327,7 @@ inline grid_t grid_bottom(grid_t grid, score_t& score)
             {
               lim = til;
               grid = grid_set(grid, til + 1, j, val + 1);
-              score += g_vals[val + 1];
+              score += g_pows[val + 1];
             }
 
           else
@@ -326,14 +342,16 @@ inline grid_t grid_bottom(grid_t grid, score_t& score)
   return grid;
 }
 
-inline grid_t grid_move(grid_t grid, score_t& score, Move move)
+static const move_f GRID_MOVES_FNS[] =
+  {
+    grid_move_left,
+    grid_move_right,
+    grid_move_top,
+    grid_move_bottom
+  };
+
+inline grid_t grid_move(grid_t grid, score_t& score, move_t move)
 {
-  if (move == Move::LEFT)
-    return grid_left(grid, score);
-  else if (move == Move::RIGHT)
-    return grid_right(grid, score);
-  else if (move == Move::TOP)
-    return grid_top(grid, score);
-  else
-    return grid_bottom(grid, score);
+  assert(move >= 0 && move < 4);
+  return GRID_MOVES_FNS[move](grid, score);
 }

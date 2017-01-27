@@ -17,7 +17,7 @@ public:
   {}
 
   long exp(grid_t grid, int depth)
-  { 
+  {
     long total = 0;
     long weight = 0;
 
@@ -65,12 +65,12 @@ public:
     return res;
   }
 
-  virtual Move move_get(grid_t grid, score_t) override
+  virtual move_t move_get(grid_t grid, score_t) override
   {
     Move best = Move::LEFT;
     long res = LONG_MIN;
 
-    for (auto m : { Move::LEFT, Move::RIGHT, Move::TOP, Move::BOTTOM })
+    for (auto m : { Game::LEFT, Game::RIGHT, Game::TOP, Game::BOTTOM })
       {
         grid_t next = grid_move(grid, tmp_, m);
         if (next == grid)

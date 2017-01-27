@@ -38,7 +38,6 @@ public:
     auto it = cache_min_.find(grid);
     if (it != cache_min_.end() && it->second.second >= depth)
       return it->second.first;
-  
 
     heur_t res = 0;
     heur_t div = 0;
@@ -48,8 +47,8 @@ public:
         if (grid_get(grid, i))
           continue;
 
-        grid_t grid2 = grid_set(grid, i, 1);
-        grid_t grid4 = grid_set(grid, i, 2);
+        grid_t grid2 = grid_put(grid, i, 1);
+        grid_t grid4 = grid_put(grid, i, 2);
 
 
         heur_t val2 = max(grid2, depth - 1);
@@ -74,7 +73,7 @@ public:
 
     heur_t res = HEUR_MIN;
 
-    for (auto m : { Move::LEFT, Move::RIGHT, Move::TOP, Move::BOTTOM })
+    for (auto m : { GRID_LEFT, GRID_RIGHT, GRID_TOP, GRID_BOTTOM })
       {
         grid_t next = grid_move(grid, tmp_, m);
         if (next == grid)
@@ -89,12 +88,12 @@ public:
     return res;
   }
 
-  Move move_depth(grid_t grid, int depth)
+  move_t move_depth(grid_t grid, int depth)
   {
-    Move best = Move::LEFT;
+    move_t best = grid_LEFT;
     heur_t res = HEUR_MIN;
 
-    for (auto m : { Move::LEFT, Move::RIGHT, Move::TOP, Move::BOTTOM })
+    for (auto m : {GRID_LEFT, GRID_RIGHT, GRID_TOP, GRID_BOTTOM })
       {
         grid_t next = grid_move(grid, tmp_, m);
         if (next == grid)
@@ -111,11 +110,11 @@ public:
     return best;
   }
 
-  virtual Move move_get(grid_t grid, score_t) override
+  virtual move_t move_get(grid_t grid, score_t) override
   {
     Timer timer;
     int depth = 0;
-    Move res = Move::LEFT;
+    move_t res = GRID_LEFT;
 
     long max_time = ELIMIT;
     //if (heur_empty(grid) < 4)

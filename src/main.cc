@@ -4,9 +4,6 @@
 #include "ai/shell.hh"
 #include "grid.hh"
 #include "ai.hh"
-#include "dump-ai.hh"
-#include "expect-ai.hh"
-#include "min-max-ai.hh"
 #include <unistd.h>
 
 #include "debug-eai.hh"
@@ -52,7 +49,7 @@ double loop_games(int n)
       auto agent = DebugEAI<Heur1>{};
       agent.init(grid, score);
 
-      while (!grid_finished(grid))
+      while (!grid_is_finished(grid))
         {
           grid = grid_move(grid, score, agent.move_get(grid, score));
           agent.after(grid, score);
@@ -138,7 +135,7 @@ void check2()
       auto agent = DebugEAI<Heur1>{};
       agent.init(grid, score);
 
-      while (!grid_finished(grid))
+      while (!grid_is_finished(grid))
         {
           grid = grid_move(grid, score, agent.move_get(grid, score));
           agent.after(grid, score);
@@ -195,19 +192,19 @@ int main()
   print_grid(cvs, grid, score, delta);
   Timer timer;
 
-  while (!grid_finished(grid))
+  while (!grid_is_finished(grid))
     {
       timer.reset();
       grid_t res = grid_move(grid, score, agent.move_get(grid, score));
       delta = timer.get();
-      
+
       assert(res != grid);
       grid = res;
 
       agent.after(grid, score);
       print_grid(cvs, grid, score, delta);
     }
-  
+
   std::cout << std::endl;
 
   agent.stats();

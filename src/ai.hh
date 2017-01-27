@@ -15,7 +15,7 @@ public:
     grid = grid_rand(rand_, grid);
   }
 
-  virtual Move move_get(grid_t grid, score_t score) = 0;
+  virtual move_t move_get(grid_t grid, score_t score) = 0;
 
   virtual void after(grid_t& grid, score_t& score)
   {

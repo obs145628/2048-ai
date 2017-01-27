@@ -24,7 +24,7 @@ inline heur_t heur_max(grid_t grid)
   heur_t res = 0;
   for (heur_t i = 0; i < 16; ++i)
     {
-      heur_t val = grid_get(grid, i);
+      heur_t val = Game::get(grid, i);
       res = std::max(res, val);
     }
   return res;
@@ -35,7 +35,7 @@ inline heur_t heur_sum(grid_t grid)
   heur_t res = 0;
   for (index_t i = 0; i < 16; ++i)
     {
-      heur_t val = grid_get(grid, i);
+      heur_t val = Game::get(grid, i);
       res += std::pow(val, 3);
     }
   return res;
@@ -44,21 +44,21 @@ inline heur_t heur_sum(grid_t grid)
 inline heur_t heur_edge(grid_t grid)
 {
 
-  return - (grid_get(grid, 0) != heur_max(grid));
+  return - (Game::get(grid, 0) != heur_max(grid));
   
-  return 64 * grid_get(grid, 0)
-    + 16 * grid_get(grid, 1)
-    + 4 * grid_get(grid, 2)
-    + 16 * grid_get(grid, 4)
-    + 4 * grid_get(grid, 5)
-    + 4 * grid_get(grid, 8);
+  return 64 * Game::get(grid, 0)
+    + 16 * Game::get(grid, 1)
+    + 4 * Game::get(grid, 2)
+    + 16 * Game::get(grid, 4)
+    + 4 * Game::get(grid, 5)
+    + 4 * Game::get(grid, 8);
 }
 
 inline heur_t heur_empty(grid_t grid)
 {
   heur_t res = 0;
   for (heur_t i = 0; i < 16; ++i)
-    res += !grid_get(grid, i);
+    res += !Game::get(grid, i);
   return res;
 }
 
@@ -69,21 +69,21 @@ inline heur_t heur_smoothness(grid_t grid)
   for (index_t i = 0; i < 4; ++i)
     for (index_t j = 0; j < 4; ++j)
       {
-        if (!grid_get(grid, i, j))
+        if (!Game::get(grid, i, j))
           continue;
 
         index_t k = i + 1;
-        while (k < 4 && !grid_get(grid, k, j))
+        while (k < 4 && !Game::get(grid, k, j))
           ++k;
         if (k < 4)
-          res += grid_get(grid, i, j) == grid_get(grid, k, j);
+          res += Game::get(grid, i, j) == Game::get(grid, k, j);
 
         k = j + 1;
-        while (k < 4 && !grid_get(grid, i, k))
+        while (k < 4 && !Game::get(grid, i, k))
           ++k;
 
         if (k < 4)
-          res += grid_get(grid, i, j) - grid_get(grid, i, k);
+          res += Game::get(grid, i, j) - Game::get(grid, i, k);
       }
 
   return res;
@@ -103,15 +103,15 @@ inline heur_t heur_monocity(grid_t grid)
 
       while (j2 < 4)
         {
-          while (j2 < 3 && !grid_get(grid, i, j2))
+          while (j2 < 3 && !Game::get(grid, i, j2))
             ++j2;
 
-          if (grid_get(grid, i, j1) > grid_get(grid, i, j2))
-            mup +=  (std::pow(grid_get(grid, i, j1), 4)
-                    - std::pow(grid_get(grid, i, j2), 4));
+          if (Game::get(grid, i, j1) > Game::get(grid, i, j2))
+            mup +=  (std::pow(Game::get(grid, i, j1), 4)
+                    - std::pow(Game::get(grid, i, j2), 4));
           else
-            mdown += (std::pow(grid_get(grid, i, j2), 4)
-                      - std::pow(grid_get(grid, i, j1), 4));
+            mdown += (std::pow(Game::get(grid, i, j2), 4)
+                      - std::pow(Game::get(grid, i, j1), 4));
 
           j1 = j2++;
         }
@@ -124,15 +124,15 @@ inline heur_t heur_monocity(grid_t grid)
 
       while (i2 < 4)
         {
-          while (i2 < 3 && !grid_get(grid, i2, j))
+          while (i2 < 3 && !Game::get(grid, i2, j))
             ++i2;
 
-          if (grid_get(grid, i1, j) > grid_get(grid, i2, j))
-            mleft +=  (std::pow(grid_get(grid, i1, j), 4)
-                      - std::pow(grid_get(grid, i2, j), 4));
+          if (Game::get(grid, i1, j) > Game::get(grid, i2, j))
+            mleft +=  (std::pow(Game::get(grid, i1, j), 4)
+                      - std::pow(Game::get(grid, i2, j), 4));
           else
-            mright +=  (std::pow(grid_get(grid, i2, j), 4)
-                       - std::pow(grid_get(grid, i1, j), 4));
+            mright +=  (std::pow(Game::get(grid, i2, j), 4)
+                       - std::pow(Game::get(grid, i1, j), 4));
 
           i1 = i2++;
         }
@@ -166,21 +166,21 @@ struct Heur2
   heur_t operator()(grid_t grid) const
   {
     ++nb_evals;
-    return 1024 * g_vals[grid_get(grid, 0)]
-      + 512 * g_vals[grid_get(grid, 1)]
-      + 256 * g_vals[grid_get(grid, 2)]
-      + 128 * g_vals[grid_get(grid, 3)]
-      + 64 * g_vals[grid_get(grid, 7)]
-      + 32 * g_vals[grid_get(grid, 6)]
-      + 16 * g_vals[grid_get(grid, 5)]
-      + 8 * g_vals[grid_get(grid, 4)]
-      + 7 * g_vals[grid_get(grid, 8)]
-      + 6 * g_vals[grid_get(grid, 9)]
-      + 5 * g_vals[grid_get(grid, 10)]
-      + 4 * g_vals[grid_get(grid, 11)]
-      + 3 * g_vals[grid_get(grid, 14)]
-      + 2 * g_vals[grid_get(grid, 13)]
-      + 1 * g_vals[grid_get(grid, 12)];
+    return 1024 * g_pows[Game::get(grid, 0)]
+      + 512 * g_pows[Game::get(grid, 1)]
+      + 256 * g_pows[Game::get(grid, 2)]
+      + 128 * g_pows[Game::get(grid, 3)]
+      + 64 * g_pows[Game::get(grid, 7)]
+      + 32 * g_pows[Game::get(grid, 6)]
+      + 16 * g_pows[Game::get(grid, 5)]
+      + 8 * g_pows[Game::get(grid, 4)]
+      + 7 * g_pows[Game::get(grid, 8)]
+      + 6 * g_pows[Game::get(grid, 9)]
+      + 5 * g_pows[Game::get(grid, 10)]
+      + 4 * g_pows[Game::get(grid, 11)]
+      + 3 * g_pows[Game::get(grid, 14)]
+      + 2 * g_pows[Game::get(grid, 13)]
+      + 1 * g_pows[Game::get(grid, 12)];
   }
 };
 

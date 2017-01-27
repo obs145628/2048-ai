@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 2.8)
 
 set(CMAKE_CXX_COMPILER "g++")
 
-#set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Werror -pedantic -std=c++14")
-set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Werror -pedantic -std=c++14 -O2 -DNDEBUG")
+set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Werror -pedantic -std=c++14")
+#set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Werror -pedantic -std=c++14 -O2 -DNDEBUG")
 
 include_directories(../ai-cpp/include)
 link_directories(${CMAKE_SOURCE_DIR}/../ai-cpp/build)
