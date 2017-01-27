@@ -1,0 +1,15 @@
+2048 IA implementation.
+
+Algorithms
+- Dump (choose move that maximize score)
+- Expectimax
+- MinMax + AlphaBeta (Suppose random is against us and choose worst possible tile)
+
+Compilation:
+mkdir build
+cd build
+cmake ..
+make
+
+Usage:
+./2048
