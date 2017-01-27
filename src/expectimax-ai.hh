@@ -7,13 +7,7 @@
 #include "ai/shell/timer.hh"
 #include "heur.hh"
 
-
-#define ELIMIT 0
-
-#define EMAX_DEPTH 50
-
-template <class E>
-class DebugEAI : public AI
+class ExpectimaxAI : public AI
 {
 
 public:
@@ -22,9 +16,8 @@ public:
   using val_t = std::pair<heur_t, int>; //<value, depth>
   using cache_t = std::unordered_map<grid_t, val_t>;
 
-  DebugEAI(E eval = {})
+  ExpectimaxAI(heur_f eval)
     : eval_(eval)
-    , tmp_(0)
     , max_depth_(0)
     , sum_depth_(0)
     , nmoves_(0)
@@ -75,7 +68,7 @@ public:
 
     for (auto m : { GRID_LEFT, GRID_RIGHT, GRID_TOP, GRID_BOTTOM })
       {
-        grid_t next = grid_move(grid, tmp_, m);
+        grid_t next = grid_fast_move(grid, m);
         if (next == grid)
           continue;
         res = std::max(res, min(next, depth - 1));
@@ -90,12 +83,12 @@ public:
 
   move_t move_depth(grid_t grid, int depth)
   {
-    move_t best = grid_LEFT;
+    move_t best = GRID_LEFT;
     heur_t res = HEUR_MIN;
 
     for (auto m : {GRID_LEFT, GRID_RIGHT, GRID_TOP, GRID_BOTTOM })
       {
-        grid_t next = grid_move(grid, tmp_, m);
+        grid_t next = grid_fast_move(grid, m);
         if (next == grid)
           continue;
         heur_t val = min(next, depth);
@@ -110,17 +103,17 @@ public:
     return best;
   }
 
-  virtual move_t move_get(grid_t grid, score_t) override
+  virtual move_t move_get(grid_t grid) override
   {
     Timer timer;
     int depth = 0;
     move_t res = GRID_LEFT;
 
-    long max_time = ELIMIT;
-    //if (heur_empty(grid) < 4)
-    //max_time *= std::pow(4 - heur_empty(grid), 1);
+    long max_time = TIME_LIMIT;
+    if (grid_count_empty(grid) < 4)
+      max_time *= std::pow(4 - grid_count_empty(grid), 1);
 
-    while (depth < EMAX_DEPTH)
+    while (depth < MAX_DEPTH)
       {
         res = move_depth(grid, depth);
 
@@ -142,7 +135,7 @@ public:
   {
     double sum = sum_depth_;
     long time = timer_.get();
-    long evals = nb_evals * 1000 / time;
+    long evals = heur_nb_evals * 1000 / time;
     std::cout << "------------------------------------\n";
     std::cout << "Number of moves: " << nmoves_ << "\n";
     std::cout << "Max Depth: " << max_depth_ << "\n";
@@ -153,8 +146,7 @@ public:
   }
 
 private:
-  E eval_;
-  score_t tmp_;
+  heur_f eval_;
   
   int max_depth_;
   int sum_depth_;

@@ -1,25 +1,20 @@
 #include <cassert>
 #include <iostream>
 #include <fstream>
-#include "ai/shell.hh"
-#include "grid.hh"
-#include "ai.hh"
 #include <unistd.h>
-
-#include "debug-eai.hh"
+#include "ai/shell.hh"
+#include "ai.hh"
+#include "expectimax-ai.hh"
+#include "grid.hh"
 #include "heur.hh"
+#include "min-max-ai.hh"
 
-long nb_evals = 0;
+long heur_nb_evals = 0;
 
-
-//test1: 17
-long weight_mono = 100;//100
-long weight_mono2 = 0;
-long weight_smoo = 20;//15
-long weight_empty = 400;//150
-long weight_max = 0;
-long weight_edge = 0;
-long weight_sum = 60;//30
+heur_t weight_monoticity = 100;
+heur_t weight_smoothness = 20;
+heur_t weight_empty = 200;
+heur_t weight_sum = 30;
 
 
 void print_grid(ShellCanvas& cvs, grid_t grid, score_t score, long delta)
@@ -46,19 +41,19 @@ double loop_games(int n)
       score_t score = 0;
       int moves = 0;
   
-      auto agent = DebugEAI<Heur1>{};
+      ExpectimaxAI agent{heur_eval1};
       agent.init(grid, score);
 
       while (!grid_is_finished(grid))
         {
-          grid = grid_move(grid, score, agent.move_get(grid, score));
+          grid = grid_move(grid, score, agent.move_get(grid));
           agent.after(grid, score);
           ++moves;
         }
 
       sum_score += score;
-      long max_tilde = std::pow(2, heur_max(grid));
-      ++maxs[heur_max(grid)];
+      long max_tilde = std::pow(2, grid_get_max(grid));
+      ++maxs[grid_get_max(grid)];
 
       continue;
       
@@ -129,15 +124,15 @@ void check2()
 
   while (true)
     {
-      nb_evals = 0;
+      heur_nb_evals = 0;
       grid_t grid = 0;
       score_t score = 0;
-      auto agent = DebugEAI<Heur1>{};
+      ExpectimaxAI agent{heur_eval1};
       agent.init(grid, score);
 
       while (!grid_is_finished(grid))
         {
-          grid = grid_move(grid, score, agent.move_get(grid, score));
+          grid = grid_move(grid, score, agent.move_get(grid));
           agent.after(grid, score);
         }
 
@@ -147,7 +142,7 @@ void check2()
       if (score < min_score)
         min_score = score;
 
-      long tilde = std::pow(2, heur_max(grid));
+      long tilde = std::pow(2, grid_get_max(grid));
       if (tilde > max_tilde)
         max_tilde = tilde;
       if (tilde < min_tilde)
@@ -172,17 +167,15 @@ void check2()
 
 int main()
 {
+  grid_init();
+  heur_init();
 
-  //find_weight(weight_empty, 0, 600, 30);
-  //return 0;
-
-  //check2();
+  check2();
   
   grid_t grid = 0;
   score_t score = 0;
   
-  auto agent = DebugEAI<Heur1>{};
-  //auto agent = DebugEAI<EvalAlign2>{};
+  ExpectimaxAI agent{heur_eval1};
   agent.init(grid, score);
 
 
@@ -195,7 +188,7 @@ int main()
   while (!grid_is_finished(grid))
     {
       timer.reset();
-      grid_t res = grid_move(grid, score, agent.move_get(grid, score));
+      grid_t res = grid_move(grid, score, agent.move_get(grid));
       delta = timer.get();
 
       assert(res != grid);
@@ -205,7 +198,7 @@ int main()
       print_grid(cvs, grid, score, delta);
     }
 
-  std::cout << std::endl;
+  std::cout << "\n";
 
   agent.stats();
 }

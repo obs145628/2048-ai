@@ -5,6 +5,10 @@
 class AI
 {
 public:
+
+  static constexpr long TIME_LIMIT = 2;
+  static constexpr int MAX_DEPTH = 50;
+
   virtual ~AI()
   {}
 
@@ -15,17 +19,16 @@ public:
     grid = grid_rand(rand_, grid);
   }
 
-  virtual move_t move_get(grid_t grid, score_t score) = 0;
+  virtual move_t move_get(grid_t grid) = 0;
 
-  virtual void after(grid_t& grid, score_t& score)
+  virtual void after(grid_t& grid, score_t&)
   {
-    score = score;
     grid = grid_rand(rand_, grid);
   }
 
   virtual void stats()
   {}
 
-public:
+private:
   Random rand_;
 };

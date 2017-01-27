@@ -2,186 +2,171 @@
 
 #include "grid.hh"
 
-extern long nb_evals;
+extern long heur_nb_evals;
 
 using heur_t = grid_t;
+using heur_f = heur_t (*)(grid_t grid);
 constexpr heur_t HEUR_MIN = 0;
 constexpr heur_t HEUR_MAX = -1;
-constexpr heur_t HEUR_DEATH = 1;
-constexpr heur_t HEUR_BASE = 1e9;
+constexpr heur_t HEUR_DEATH = 1000;
+constexpr heur_t HEUR_BASE = 1e8;
 
-extern long weight_mono;
-extern long weight_mono2;
-extern long weight_smoo;
-extern long weight_empty;
-extern long weight_max;
-extern long weight_edge;
-extern long weight_sum;
+extern heur_t weight_monoticity;
+extern heur_t weight_smoothness;
+extern heur_t weight_empty;
+extern heur_t weight_sum;
 
+heur_t HEUR_VALS[GRID_ROW_SIZE];
 
-inline heur_t heur_max(grid_t grid)
+void heur_init_monoticity()
 {
-  heur_t res = 0;
-  for (heur_t i = 0; i < 16; ++i)
+    for (grid_t row = 0; row < GRID_ROW_SIZE; ++row)
     {
-      heur_t val = Game::get(grid, i);
-      res = std::max(res, val);
-    }
-  return res;
-}
-
-inline heur_t heur_sum(grid_t grid)
-{
-  heur_t res = 0;
-  for (index_t i = 0; i < 16; ++i)
-    {
-      heur_t val = Game::get(grid, i);
-      res += std::pow(val, 3);
-    }
-  return res;
-}
-
-inline heur_t heur_edge(grid_t grid)
-{
-
-  return - (Game::get(grid, 0) != heur_max(grid));
-  
-  return 64 * Game::get(grid, 0)
-    + 16 * Game::get(grid, 1)
-    + 4 * Game::get(grid, 2)
-    + 16 * Game::get(grid, 4)
-    + 4 * Game::get(grid, 5)
-    + 4 * Game::get(grid, 8);
-}
-
-inline heur_t heur_empty(grid_t grid)
-{
-  heur_t res = 0;
-  for (heur_t i = 0; i < 16; ++i)
-    res += !Game::get(grid, i);
-  return res;
-}
-
-
-inline heur_t heur_smoothness(grid_t grid)
-{
-  heur_t res = 0;
-  for (index_t i = 0; i < 4; ++i)
-    for (index_t j = 0; j < 4; ++j)
-      {
-        if (!Game::get(grid, i, j))
-          continue;
-
-        index_t k = i + 1;
-        while (k < 4 && !Game::get(grid, k, j))
-          ++k;
-        if (k < 4)
-          res += Game::get(grid, i, j) == Game::get(grid, k, j);
-
-        k = j + 1;
-        while (k < 4 && !Game::get(grid, i, k))
-          ++k;
-
-        if (k < 4)
-          res += Game::get(grid, i, j) - Game::get(grid, i, k);
-      }
-
-  return res;
-}
-
-inline heur_t heur_monocity(grid_t grid)
-{ 
-  heur_t mup = 0;
-  heur_t mdown = 0;
-  heur_t mleft = 0;
-  heur_t mright = 0;
-
-  for (index_t i = 0; i < 4; ++i)
-    {
-      index_t j1 = 0;
-      index_t j2 = 1;
-
-      while (j2 < 4)
+      grid_t data[4] =
         {
-          while (j2 < 3 && !Game::get(grid, i, j2))
-            ++j2;
+          (row >> 0) & 0xF,
+          (row >> 4) & 0xF,
+          (row >> 8) & 0xF,
+          (row >> 12) & 0xF,
+        };
 
-          if (Game::get(grid, i, j1) > Game::get(grid, i, j2))
-            mup +=  (std::pow(Game::get(grid, i, j1), 4)
-                    - std::pow(Game::get(grid, i, j2), 4));
-          else
-            mdown += (std::pow(Game::get(grid, i, j2), 4)
-                      - std::pow(Game::get(grid, i, j1), 4));
+      heur_t mleft = 0;
+      heur_t mright = 0;
 
-          j1 = j2++;
-        }
-    }
 
-  for (index_t j = 0; j < 4; ++j)
-    {
       index_t i1 = 0;
       index_t i2 = 1;
 
       while (i2 < 4)
         {
-          while (i2 < 3 && !Game::get(grid, i2, j))
+          while (i2 < 3 && !data[i2])
             ++i2;
 
-          if (Game::get(grid, i1, j) > Game::get(grid, i2, j))
-            mleft +=  (std::pow(Game::get(grid, i1, j), 4)
-                      - std::pow(Game::get(grid, i2, j), 4));
+          if (data[i1] > data[i2])
+            mleft +=  (std::pow(data[i1], 4)
+                       - std::pow(data[i2], 4));
           else
-            mright +=  (std::pow(Game::get(grid, i2, j), 4)
-                       - std::pow(Game::get(grid, i1, j), 4));
+            mright +=  (std::pow(data[i2], 4)
+                        - std::pow(data[i1], 4));
 
           i1 = i2++;
         }
+
+
+
+      heur_t res = std::min(mleft, mright);
+      HEUR_VALS[row] -= weight_monoticity * res;
     }
-
-
-    
-  heur_t res = std::min(mup, mdown) + std::min(mleft, mright);
-  //heur_t res = mup + mleft;
-  return res;
 }
 
-struct Heur1
+void heur_init_empty()
 {
-  heur_t operator()(grid_t grid) const
-  {
-    ++nb_evals;
+  for (grid_t row = 0; row < GRID_ROW_SIZE; ++row)
+    {
+      grid_t data[4] =
+        {
+          (row >> 0) & 0xF,
+          (row >> 4) & 0xF,
+          (row >> 8) & 0xF,
+          (row >> 12) & 0xF,
+        };
 
-    return HEUR_BASE
-      - weight_mono * heur_monocity(grid)
-      + weight_empty * heur_empty(grid)
-      + weight_smoo * heur_smoothness(grid)
-      + weight_max * heur_max(grid)
-      + weight_edge * heur_edge(grid)
-      - weight_sum * heur_sum(grid);
-  }
-};
+      heur_t res = 0;
+      for (int i = 0; i < 4; ++i)
+        res += !data[i];
 
-struct Heur2
+      HEUR_VALS[row] += weight_empty * res;
+    }
+}
+
+void heur_init_smoothness()
 {
-  heur_t operator()(grid_t grid) const
-  {
-    ++nb_evals;
-    return 1024 * g_pows[Game::get(grid, 0)]
-      + 512 * g_pows[Game::get(grid, 1)]
-      + 256 * g_pows[Game::get(grid, 2)]
-      + 128 * g_pows[Game::get(grid, 3)]
-      + 64 * g_pows[Game::get(grid, 7)]
-      + 32 * g_pows[Game::get(grid, 6)]
-      + 16 * g_pows[Game::get(grid, 5)]
-      + 8 * g_pows[Game::get(grid, 4)]
-      + 7 * g_pows[Game::get(grid, 8)]
-      + 6 * g_pows[Game::get(grid, 9)]
-      + 5 * g_pows[Game::get(grid, 10)]
-      + 4 * g_pows[Game::get(grid, 11)]
-      + 3 * g_pows[Game::get(grid, 14)]
-      + 2 * g_pows[Game::get(grid, 13)]
-      + 1 * g_pows[Game::get(grid, 12)];
-  }
-};
+  for (grid_t row = 0; row < GRID_ROW_SIZE; ++row)
+    {
+      grid_t data[4] =
+        {
+          (row >> 0) & 0xF,
+          (row >> 4) & 0xF,
+          (row >> 8) & 0xF,
+          (row >> 12) & 0xF,
+        };
 
+      heur_t res = 0;
+      for (index_t i = 0; i < 4; ++i)
+        {
+          if (!data[i])
+            continue;
 
+          index_t k = i + 1;
+          while (k < 4 && !data[k])
+            ++k;
+          if (k < 4)
+            res += (data[i] == data[k]);
+        }
+
+      HEUR_VALS[row] += weight_smoothness * res;
+    }
+}
+
+void heur_init_sum()
+{
+  for (grid_t row = 0; row < GRID_ROW_SIZE; ++row)
+    {
+      grid_t data[4] =
+        {
+          (row >> 0) & 0xF,
+          (row >> 4) & 0xF,
+          (row >> 8) & 0xF,
+          (row >> 12) & 0xF,
+        };
+
+      heur_t res = 0;
+      for (int i = 0; i < 4; ++i)
+        res += std::pow(data[i], 3);
+
+      HEUR_VALS[row] -= weight_sum * res;
+    }
+}
+
+void heur_init()
+{
+  std::fill_n(HEUR_VALS, GRID_ROW_SIZE, HEUR_BASE);
+  heur_init_monoticity();
+  heur_init_empty();
+  heur_init_smoothness();
+  heur_init_sum();
+}
+
+heur_t heur_eval1(grid_t grid)
+{
+  ++heur_nb_evals;
+  grid_t tr = grid_transpose(grid);
+  return HEUR_VALS[grid_get_row(grid, 0)]
+    + HEUR_VALS[grid_get_row(grid, 1)]
+    + HEUR_VALS[grid_get_row(grid, 2)]
+    + HEUR_VALS[grid_get_row(grid, 3)]
+    + HEUR_VALS[grid_get_row(tr, 0)]
+    + HEUR_VALS[grid_get_row(tr, 1)]
+    + HEUR_VALS[grid_get_row(tr, 2)]
+    + HEUR_VALS[grid_get_row(tr, 3)];
+}
+
+heur_t heur_eval2(grid_t grid)
+{
+  ++heur_nb_evals;
+  return 1024 * GRID_POWS[grid_get(grid, 0)]
+    + 512 * GRID_POWS[grid_get(grid, 1)]
+    + 256 * GRID_POWS[grid_get(grid, 2)]
+    + 128 * GRID_POWS[grid_get(grid, 3)]
+    + 64 * GRID_POWS[grid_get(grid, 7)]
+    + 32 * GRID_POWS[grid_get(grid, 6)]
+    + 16 * GRID_POWS[grid_get(grid, 5)]
+    + 8 * GRID_POWS[grid_get(grid, 4)]
+    + 7 * GRID_POWS[grid_get(grid, 8)]
+    + 6 * GRID_POWS[grid_get(grid, 9)]
+    + 5 * GRID_POWS[grid_get(grid, 10)]
+    + 4 * GRID_POWS[grid_get(grid, 11)]
+    + 3 * GRID_POWS[grid_get(grid, 14)]
+    + 2 * GRID_POWS[grid_get(grid, 13)]
+    + 1 * GRID_POWS[grid_get(grid, 12)];
+}

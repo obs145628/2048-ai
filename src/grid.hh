@@ -12,9 +12,10 @@ using index_t = std::uint64_t;
 using score_t = std::uint64_t;
 using move_t = int;
 using move_f = grid_t (*)(grid_t grid, score_t& score);
+using fast_move_f = grid_t (*)(grid_t grid);
 
 
-static const score_t g_pows[] =
+static const score_t GRID_POWS[] =
   {
     0,
     2,
@@ -100,6 +101,16 @@ static constexpr move_t GRID_LEFT = 0;
 static constexpr move_t GRID_RIGHT = 1;
 static constexpr move_t GRID_TOP = 2;
 static constexpr move_t GRID_BOTTOM = 3;
+static constexpr int GRID_ROW_SIZE = 0xFFFF;
+
+grid_t GRID_TABLE_LEFT[GRID_ROW_SIZE];
+grid_t GRID_TABLE_RIGHT[GRID_ROW_SIZE];
+grid_t GRID_TABLE_SCORE_LEFT[GRID_ROW_SIZE];
+grid_t GRID_TABLE_SCORE_RIGHT[GRID_ROW_SIZE];
+grid_t GRID_TABLE_TR1[GRID_ROW_SIZE];
+grid_t GRID_TABLE_TR2[GRID_ROW_SIZE];
+grid_t GRID_TABLE_TR3[GRID_ROW_SIZE];
+grid_t GRID_TABLE_TR4[GRID_ROW_SIZE];
 
 
 inline index_t grid_get(grid_t grid, index_t pos)
@@ -153,6 +164,22 @@ inline grid_t grid_clear(grid_t grid, index_t i, index_t j)
   return grid_clear(grid, i * 4 + j);
 }
 
+inline int grid_count_empty(grid_t grid)
+{
+  int res = 0;
+  for (int i = 0; i < 16; ++i)
+    res += !grid_get(grid, i);
+  return res;
+}
+
+inline grid_t grid_get_max(grid_t grid)
+{
+  grid_t res = 0;
+  for (int i = 0; i < 16; ++i)
+    res = std::max(res, grid_get(grid, i));
+  return res;
+}
+
 inline grid_t grid_set(grid_t grid, index_t pos, index_t val)
 {
   assert(pos < 16);
@@ -169,7 +196,6 @@ inline grid_t grid_set(grid_t grid, index_t i, index_t j, index_t val)
 inline grid_t grid_put(grid_t grid, index_t pos, index_t val)
 {
   assert(pos < 16);
-  assert((grid | (val << (pos * 4))) == grid_set(grid, pos, val));
   return grid | (val << (pos * 4));
 }
 
@@ -210,136 +236,210 @@ inline grid_t grid_rand(Random& rand, grid_t grid)
   return grid;
 }
 
-inline grid_t grid_move_left(grid_t grid, score_t& score)
+inline grid_t grid_get_row(grid_t grid, index_t i)
 {
-  for (unsigned i = 0; i < 4; ++i)
+  assert(i < 4);
+  return (grid >> (16 * i)) & 0xFFFF;
+}
+
+inline grid_t grid_join_rows(grid_t r1, grid_t r2, grid_t r3, grid_t r4)
+{
+  return (r1 << (16 * 0))
+    | (r2 << (16 * 1))
+    | (r3 << (16 * 2))
+    | (r4 << (16 * 3));
+}
+
+inline void grid_init_left()
+{
+  for (grid_t row = 0; row < GRID_ROW_SIZE; ++row)
     {
+      grid_t data[4] =
+        {
+          (row >> 0) & 0xF,
+          (row >> 4) & 0xF,
+          (row >> 8) & 0xF,
+          (row >> 12) & 0xF,
+        };
+
+      GRID_TABLE_SCORE_LEFT[row] = 0;
+      
       unsigned lim = 0;
       unsigned til = 0;
       for (unsigned j = 0; j < 4; ++j)
         {
-          grid_t val = grid_get(grid, i, j);
+          grid_t val = data[j];
           if (!val)
             continue;
-          grid = grid_clear(grid, i, j);
+          data[j] = 0;
 
           if (til != lim
-              && val == grid_get(grid, i, til - 1))
+              && val == data[til - 1])
             {
               lim = til;
-              grid = grid_set(grid, i, til - 1, val + 1);
-              score += g_pows[val + 1];
+              data[til - 1] = val + 1;
+              GRID_TABLE_SCORE_LEFT[row] += GRID_POWS[val + 1];
             }
 
           else
             {
-              grid = grid_set(grid, i, til, val);
+              data[til] = val;
               ++til;
               lim = til - 1;
             }
         }
-    }
 
-  return grid;
+      GRID_TABLE_LEFT[row] = (data[0] << 0)
+        | (data[1] << 4)
+        | (data[2] << 8)
+        | (data[3] << 12);
+    }
 }
 
-inline grid_t grid_move_right(grid_t grid, score_t& score)
+inline void grid_init_right()
 {
-  for (unsigned i = 0; i < 4; ++i)
+  for (grid_t row = 0; row < GRID_ROW_SIZE; ++row)
     {
+      grid_t data[4] =
+        {
+          (row >> 0) & 0xF,
+          (row >> 4) & 0xF,
+          (row >> 8) & 0xF,
+          (row >> 12) & 0xF,
+        };
+
+      GRID_TABLE_SCORE_RIGHT[row] = 0;
+      
       unsigned lim = 3;
       unsigned til = 3;
       for (unsigned j = 3; j < 4; --j)
         {
-          grid_t val = grid_get(grid, i, j);
+          grid_t val = data[j];
           if (!val)
             continue;
-          grid = grid_clear(grid, i, j);
+          data[j] = 0;
 
           if (til != lim
-              && val == grid_get(grid, i, til + 1))
+              && val == data[til + 1])
             {
               lim = til;
-              grid = grid_set(grid, i, til + 1, val + 1);
-              score += g_pows[val + 1];
+              data[til + 1] = val + 1;
+              GRID_TABLE_SCORE_RIGHT[row] += GRID_POWS[val + 1];
             }
 
           else
             {
-              grid = grid_set(grid, i, til, val);
+              data[til] = val;
               --til;
               lim = til + 1;
             }
         }
+
+      GRID_TABLE_RIGHT[row] = (data[0] << 0)
+        | (data[1] << 4)
+        | (data[2] << 8)
+        | (data[3] << 12);
+    }
+}
+
+inline void grid_init_transpose()
+{
+  for (grid_t row = 0; row < GRID_ROW_SIZE; ++row)
+    {
+      grid_t data[4] =
+        {
+          (row >> 0) & 0xF,
+          (row >> 4) & 0xF,
+          (row >> 8) & 0xF,
+          (row >> 12) & 0xF,
+        };
+
+      GRID_TABLE_TR1[row] = 0
+        | (data[0] << 0)
+        | (data[1] << 16)
+        | (data[2] << 32)
+        | (data[3] << 48);
+
+      GRID_TABLE_TR2[row] = 0
+        | (data[0] << 4)
+        | (data[1] << 20)
+        | (data[2] << 36)
+        | (data[3] << 52);
+
+      GRID_TABLE_TR3[row] = 0
+        | (data[0] << 8)
+        | (data[1] << 24)
+        | (data[2] << 40)
+        | (data[3] << 56);
+
+      GRID_TABLE_TR4[row] = 0
+        | (data[0] << 12)
+        | (data[1] << 28)
+        | (data[2] << 44)
+        | (data[3] << 60);
+
     }
 
-  return grid;
+}
+
+
+
+inline void grid_init()
+{
+  grid_init_left();
+  grid_init_right();
+  grid_init_transpose();
+}
+
+inline grid_t grid_transpose(grid_t grid)
+{
+  return 0
+    | GRID_TABLE_TR1[grid_get_row(grid, 0)]
+    | GRID_TABLE_TR2[grid_get_row(grid, 1)]
+    | GRID_TABLE_TR3[grid_get_row(grid, 2)]
+    | GRID_TABLE_TR4[grid_get_row(grid, 3)];
+}
+
+inline grid_t grid_move_left(grid_t grid, score_t& score)
+{
+  score += GRID_TABLE_SCORE_LEFT[grid_get_row(grid, 0)]
+    + GRID_TABLE_SCORE_LEFT[grid_get_row(grid, 1)]
+    + GRID_TABLE_SCORE_LEFT[grid_get_row(grid, 2)]
+    + GRID_TABLE_SCORE_LEFT[grid_get_row(grid, 3)];
+  return grid_join_rows(
+                        GRID_TABLE_LEFT[grid_get_row(grid, 0)],
+                        GRID_TABLE_LEFT[grid_get_row(grid, 1)],
+                        GRID_TABLE_LEFT[grid_get_row(grid, 2)],
+                        GRID_TABLE_LEFT[grid_get_row(grid, 3)]
+                        );
+}
+
+inline grid_t grid_move_right(grid_t grid, score_t& score)
+{
+  score += GRID_TABLE_SCORE_RIGHT[grid_get_row(grid, 0)]
+    + GRID_TABLE_SCORE_RIGHT[grid_get_row(grid, 1)]
+    + GRID_TABLE_SCORE_RIGHT[grid_get_row(grid, 2)]
+    + GRID_TABLE_SCORE_RIGHT[grid_get_row(grid, 3)];
+  return grid_join_rows(
+                        GRID_TABLE_RIGHT[grid_get_row(grid, 0)],
+                        GRID_TABLE_RIGHT[grid_get_row(grid, 1)],
+                        GRID_TABLE_RIGHT[grid_get_row(grid, 2)],
+                        GRID_TABLE_RIGHT[grid_get_row(grid, 3)]
+                        );
 }
 
 inline grid_t grid_move_top(grid_t grid, score_t& score)
 {
-  for (unsigned j = 0; j < 4; ++j)
-    {
-      unsigned lim = 0;
-      unsigned til = 0;
-      for (unsigned i = 0; i < 4; ++i)
-        {
-          grid_t val = grid_get(grid, i, j);
-          if (!val)
-            continue;
-          grid = grid_clear(grid, i, j);
-
-          if (til != lim
-              && val == grid_get(grid, til - 1, j))
-            {
-              lim = til;
-              grid = grid_set(grid, til - 1, j, val + 1);
-              score += g_pows[val + 1];
-            }
-
-          else
-            {
-              grid = grid_set(grid, til, j, val);
-              ++til;
-              lim = til - 1;
-            }
-        }
-    }
-
-  return grid;
+  grid_t tr = grid_transpose(grid);
+  tr = grid_move_left(tr, score);
+  return grid_transpose(tr);
 }
 
 inline grid_t grid_move_bottom(grid_t grid, score_t& score)
 {
-  for (unsigned j = 0; j < 4; ++j)
-    {
-      unsigned lim = 3;
-      unsigned til = 3;
-      for (unsigned i = 3; i < 4; --i)
-        {
-          grid_t val = grid_get(grid, i, j);
-          if (!val)
-            continue;
-          grid = grid_clear(grid, i, j);
-
-          if (til != lim
-              && val == grid_get(grid, til + 1, j))
-            {
-              lim = til;
-              grid = grid_set(grid, til + 1, j, val + 1);
-              score += g_pows[val + 1];
-            }
-
-          else
-            {
-              grid = grid_set(grid, til, j,val);
-              --til;
-              lim = til + 1;
-            }
-        }
-    }
-
-  return grid;
+  grid_t tr = grid_transpose(grid);
+  tr = grid_move_right(tr, score);
+  return grid_transpose(tr);
 }
 
 static const move_f GRID_MOVES_FNS[] =
@@ -354,4 +454,53 @@ inline grid_t grid_move(grid_t grid, score_t& score, move_t move)
 {
   assert(move >= 0 && move < 4);
   return GRID_MOVES_FNS[move](grid, score);
+}
+
+
+inline grid_t grid_fast_move_left(grid_t grid)
+{
+  return grid_join_rows(
+                        GRID_TABLE_LEFT[grid_get_row(grid, 0)],
+                        GRID_TABLE_LEFT[grid_get_row(grid, 1)],
+                        GRID_TABLE_LEFT[grid_get_row(grid, 2)],
+                        GRID_TABLE_LEFT[grid_get_row(grid, 3)]
+                        );
+}
+
+inline grid_t grid_fast_move_right(grid_t grid)
+{
+  return grid_join_rows(
+                        GRID_TABLE_RIGHT[grid_get_row(grid, 0)],
+                        GRID_TABLE_RIGHT[grid_get_row(grid, 1)],
+                        GRID_TABLE_RIGHT[grid_get_row(grid, 2)],
+                        GRID_TABLE_RIGHT[grid_get_row(grid, 3)]
+                        );
+}
+
+inline grid_t grid_fast_move_top(grid_t grid)
+{
+  grid_t tr = grid_transpose(grid);
+  tr = grid_fast_move_left(tr);
+  return grid_transpose(tr);
+}
+
+inline grid_t grid_fast_move_bottom(grid_t grid)
+{
+  grid_t tr = grid_transpose(grid);
+  tr = grid_fast_move_right(tr);
+  return grid_transpose(tr);
+}
+
+static const fast_move_f GRID_FAST_MOVES_FNS[] =
+  {
+    grid_fast_move_left,
+    grid_fast_move_right,
+    grid_fast_move_top,
+    grid_fast_move_bottom
+  };
+
+inline grid_t grid_fast_move(grid_t grid, move_t move)
+{
+  assert(move >= 0 && move < 4);
+  return GRID_FAST_MOVES_FNS[move](grid);
 }
