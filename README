@@ -1,15 +1,21 @@
-2048 IA implementation.
+# 2048 AI implementation.
 
-Algorithms
-- Dump (choose move that maximize score)
-- Expectimax
-- MinMax + AlphaBeta (Suppose random is against us and choose worst possible tile)
 
-Compilation:
+2048 AI. 2048 grids are represented with 64 bits integers and operations are done using table in order to maximixe perfomance.
+
+## Compilation:
+
 mkdir build
 cd build
 cmake ..
 make
 
-Usage:
-./2048
+## Usage:
+./2048-ai <mode> <agent>
+mode:
+- gui : play one game and display the game in the terminal
+- stats: play an infinite number of games. Doesn' display the games, but display severals informaitons
+
+agent:
+- minmax : Implementation of min-max + alpha-beta pruning + iterative deepening + cache
+- expectimax : Implementation of Expectiminmax + iterative deepening + cache
