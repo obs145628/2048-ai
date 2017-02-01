@@ -109,40 +109,12 @@ void play_stats(heur_f heur)
 
 }
 
-int main(int argc, char** argv)
-{
-  if (argc != 3)
-    return 1;
-  
+int main()
+{ 
   grid_init();
   heur_init();
-  std::string mode = argv[1];
-  std::string agent = argv[2];
 
-  if (mode == "gui")
-    {
-      if (agent == "minmax")
-        play_gui(new MinMaxAI(heur_eval1));
-      else if (agent == "expectimax")
-        play_gui(new ExpectimaxAI(heur_eval1));
-      else
-        return 1;
-    }
-
-  else if (mode == "stats")
-    {
-      if (agent == "minmax")
-        play_stats<MinMaxAI>(heur_eval1);
-      else if (agent == "expectimax")
-        play_stats<ExpectimaxAI>(heur_eval1);
-      else
-        return 1;
-    }
-
-  else
-    return 1;
-
-  
+  play_gui(new ExpectimaxAI(heur_eval1));
 
   return 0;
 }
