@@ -4,15 +4,16 @@
 
 extern long heur_nb_evals;
 
-using heur_t = grid_t;
+using heur_t = double;
 using heur_f = heur_t (*)(grid_t grid);
-constexpr heur_t HEUR_MIN = 0;
+constexpr heur_t HEUR_MIN = -1e8;
 constexpr heur_t HEUR_MAX = -1;
-constexpr heur_t HEUR_DEATH = 1000;
+constexpr heur_t HEUR_DEATH = 0;
 constexpr heur_t HEUR_BASE = 1e8;
 
 extern heur_t weight_monoticity;
 extern heur_t weight_smoothness;
+extern heur_t weight_smoothness2;
 extern heur_t weight_empty;
 extern heur_t weight_sum;
 
@@ -35,6 +36,12 @@ void heur_init_empty();
  * Count the number of adjacent equal cells
  */
 void heur_init_smoothness();
+
+/**
+ * Initialize the values of the heuristic smoothness2
+ * Count the difference between adjacent tiles
+ */
+void heur_init_smoothness2();
 
 /**
  * Initialize the values of the heuristic of sum

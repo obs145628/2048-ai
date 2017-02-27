@@ -10,11 +10,13 @@
 #include "min-max-ai.hh"
 #include "player.hh"
 #include "replay.hh"
+#include "proba.hh"
 
 int main()
 {
   grid_init();
   heur_init();
+  Proba::init_tables();
   ShellCanvas cvs;
 
 

@@ -6,6 +6,7 @@
 #include <utility>
 #include "ai/shell/timer.hh"
 #include "heur.hh"
+#include "proba.hh"
 
 class ExpectimaxAI : public AI
 {
@@ -23,7 +24,8 @@ public:
     , nmoves_(0)
   {}
 
-  heur_t min(grid_t grid, int depth)
+  heur_t min(grid_t grid, int depth,
+             int k, int n)
   {
     if (!depth)
       return eval_(grid);
@@ -44,8 +46,8 @@ public:
         grid_t grid4 = grid_put(grid, i, 2);
 
 
-        heur_t val2 = max(grid2, depth - 1);
-        heur_t val4 = max(grid4, depth - 1);
+        heur_t val2 = max(grid2, depth - 1, k, n + 1);
+        heur_t val4 = max(grid4, depth - 1, k + 1, n + 1);
         res += 10.0f * val2 + val4;
         div += 11.0f;
       }
@@ -55,10 +57,15 @@ public:
     return res;
   }
 
-  heur_t max(grid_t grid, int depth)
+  heur_t max(grid_t grid, int depth,
+             int k, int n)
   {
     if (!depth)
       return eval_(grid);
+
+    if (Proba::PROBAS_TABLES[ k * Proba::MAX + n])
+      return eval_(grid);
+
 
     auto it = cache_max_.find(grid);
     if (it != cache_max_.end() && it->second.second >= depth)
@@ -71,7 +78,7 @@ public:
         grid_t next = grid_fast_move(grid, m);
         if (next == grid)
           continue;
-        res = std::max(res, min(next, depth - 1));
+        res = std::max(res, min(next, depth - 1, k, n));
       }
 
     if (res == HEUR_MIN)
@@ -91,7 +98,7 @@ public:
         grid_t next = grid_fast_move(grid, m);
         if (next == grid)
           continue;
-        heur_t val = min(next, depth);
+        heur_t val = min(next, depth, 0, 0);
         if (val > res)
           {
             res = val;

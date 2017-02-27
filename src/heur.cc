@@ -2,16 +2,17 @@
 
 long heur_nb_evals = 0;
 
-heur_t weight_monoticity = 100;
-heur_t weight_smoothness = 20;
-heur_t weight_empty = 200;
-heur_t weight_sum = 30;
+heur_t weight_monoticity = - 100.0;
+heur_t weight_smoothness = 20.0;
+heur_t weight_smoothness2 = - 1.0;
+heur_t weight_empty = 200.0;
+heur_t weight_sum = - 30.0;
 
 heur_t HEUR_VALS[GRID_ROW_SIZE];
 
 void heur_init_monoticity()
 {
-    for (grid_t row = 0; row < GRID_ROW_SIZE; ++row)
+  for (grid_t row = 0; row < GRID_ROW_SIZE; ++row)
     {
       grid_t data[4] =
         {
@@ -46,7 +47,7 @@ void heur_init_monoticity()
 
 
       heur_t res = std::min(mleft, mright);
-      HEUR_VALS[row] -= weight_monoticity * res;
+      HEUR_VALS[row] += weight_monoticity * res;
     }
 }
 
@@ -99,6 +100,35 @@ void heur_init_smoothness()
     }
 }
 
+void heur_init_smoothness2()
+{
+    for (grid_t row = 0; row < GRID_ROW_SIZE; ++row)
+    {
+      grid_t data[4] =
+        {
+          (row >> 0) & 0xF,
+          (row >> 4) & 0xF,
+          (row >> 8) & 0xF,
+          (row >> 12) & 0xF,
+        };
+
+      heur_t res = 0;
+      for (index_t i = 0; i < 4; ++i)
+        {
+          if (!data[i])
+            continue;
+
+          index_t k = i + 1;
+          while (k < 4 && !data[k])
+            ++k;
+          if (k < 4)
+            res += std::pow(std::abs(data[i] - data[k]), 4);
+        }
+
+      HEUR_VALS[row] += weight_smoothness2 * res;
+    }
+}
+
 void heur_init_sum()
 {
   for (grid_t row = 0; row < GRID_ROW_SIZE; ++row)
@@ -115,7 +145,7 @@ void heur_init_sum()
       for (int i = 0; i < 4; ++i)
         res += std::pow(data[i], 3);
 
-      HEUR_VALS[row] -= weight_sum * res;
+      HEUR_VALS[row] += weight_sum * res;
     }
 }
 

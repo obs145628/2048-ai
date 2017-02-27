@@ -6,7 +6,7 @@ class AI
 {
 public:
 
-  static constexpr long TIME_LIMIT = 10;
+  static constexpr long TIME_LIMIT = 1;
   static constexpr int MAX_DEPTH = 50;
 
   virtual ~AI()
