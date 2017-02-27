@@ -114,7 +114,18 @@ int main()
   grid_init();
   heur_init();
 
-  play_gui(new ExpectimaxAI(heur_eval1));
+  std::ifstream is("../tests/grids.txt");
+  assert(is.is_open());
+
+  auto grid = grid_load(is);
+  grid = grid_load(is);
+  
+  ShellCanvas cvs;
+  cvs.draw_sprite(2, 2, grid_to_sprite(grid));
+  cvs.render();
+  
+
+  //play_gui(new ExpectimaxAI(heur_eval1));
 
   return 0;
 }

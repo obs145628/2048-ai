@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cmath>
+#include <iostream>
 #include "ai/math/random.hh"
 #include "ai/shell/grid.hh"
 #include "ai/shell/shell.hh"
@@ -218,6 +219,19 @@ inline ShellSprite grid_to_sprite(grid_t grid)
         res.bg_set(i, j, GRID_BGS[val]);
       }
   return res.to_sprite();
+}
+
+inline grid_t grid_load(std::istream& is)
+{
+  grid_t res = 0;
+  int val;
+  for (index_t i = 0; i < 16; ++i)
+    {
+      is >> val;
+      res = grid_put(res, i, val); 
+    }
+
+  return res;
 }
 
 inline grid_t grid_rand(Random& rand, grid_t grid)
