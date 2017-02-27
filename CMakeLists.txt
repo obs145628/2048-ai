@@ -9,7 +9,11 @@ include_directories(../ai-cpp/include)
 link_directories(${CMAKE_SOURCE_DIR}/../ai-cpp/build)
 
 set(SRC
+  src/grid.cc
+  src/heur.cc
   src/main.cc
+  src/player.cc
+  src/replay.cc
 )
 
 
