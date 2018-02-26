@@ -6,7 +6,7 @@ set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Werror -pedantic -std=c++14 -O3 -DNDEBUG"
 
 
 
-add_subdirectory(ext/ai-cpp)
+add_subdirectory(ext/ai-cpp/src)
 
 include_directories(ext/ai-cpp/include)
 
@@ -26,3 +26,5 @@ set(SRC
 add_executable(2048-ai ${SRC})
 add_dependencies(2048-ai ai-cpp)
 target_link_libraries(2048-ai ai-cpp ${SFML_LIBRARIES})
+
+add_subdirectory(tests)

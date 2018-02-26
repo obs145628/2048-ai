@@ -5,10 +5,15 @@
 
 ## Compilation:
 
-mkdir build
-cd build
+```
+git submodule init
+git submodule sync
+git submodule update
+mkdir _build
+cd _build
 cmake ..
 make
+```
 
 ## Usage:
 ./2048-ai <mode> <agent>
@@ -19,3 +24,13 @@ mode:
 agent:
 - minmax : Implementation of min-max + alpha-beta pruning + iterative deepening + cache
 - expectimax : Implementation of Expectiminmax + iterative deepening + cache
+
+
+
+## Test suite :
+
+```
+make check
+````
+
+Python 3 required
