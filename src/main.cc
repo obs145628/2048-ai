@@ -2,147 +2,174 @@
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
-#include "ai/shell.hh"
-#include "ai.hh"
+#include <ai/misc/timer.hh>
+#include "world.hh"
+#include "agent.hh"
 #include "expectimax-ai.hh"
 #include "grid.hh"
 #include "heur.hh"
+#include "human-agent.hh"
 #include "min-max-ai.hh"
+#include "replay-agent.hh"
 
-long heur_nb_evals = 0;
-
-heur_t weight_monoticity = 100;
-heur_t weight_smoothness = 20;
-heur_t weight_empty = 200;
-heur_t weight_sum = 30;
-
-
-void print_grid(ShellCanvas& cvs, grid_t grid, score_t score, long delta)
+int task_gridtest(int argc, char** argv)
 {
-  cvs.clear();
-  cvs.draw_string(0, 0, "Delta: " + std::to_string(delta));
-  cvs.draw_string(0, 1, "Score: " + std::to_string(score));
-  cvs.draw_sprite(2, 2, grid_to_sprite(grid));
-  cvs.render();
-}
-
-void play_gui(AI* agent)
-{
-  grid_t grid = 0;
-  score_t score = 0;
-  agent->init(grid, score);
-
-  ShellCanvas cvs;
-  long delta = 0;
-
-  print_grid(cvs, grid, score, delta);
-  Timer timer;
-
-  while (!grid_is_finished(grid))
+    if (argc < 4)
     {
-      timer.reset();
-      grid_t res = grid_move(grid, score, agent->move_get(grid));
-      delta = timer.get();
+	std::cerr << "gridtest: missing arguments\n";
+	return 1;
+    }
+    
+    std::string type = argv[2];
+    std::string moves_file = argv[3];
 
-      assert(res != grid);
-      grid = res;
+    std::ifstream is(moves_file);
 
-      agent->after(grid, score);
-      print_grid(cvs, grid, score, delta);
+    if (type == "world")
+    {
+	to48::World world(4);
+	world.play_actions(to48::World::unserialize_actions(is));
+	world.write_full(std::cout);
+	return 0;
     }
 
-  std::cout << "\n";
+    else
+    {
+	std::cerr << "Unknow type: " << type << std::endl; 
+	return 1;
+    }
+}
 
-  agent->stats();
+void play_gui(to48::Agent* agent)
+{
+    to48::World world(4);
+    long delta = 0;
+    Timer timer;
+    agent->init(world);
+    world.render_gui();
+    
+    while (!world.is_finished())
+    {
+	timer.reset();
+	to48::World::action_t action = agent->action_get(world);
+	delta = timer.get();
+	world.take_action(action);
+	world.delta_set(delta);
+	agent->after(world);
+	world.render_gui();
+    }
+
+    std::cout << "\n";
+    agent->stats();
+
+    std::ofstream moves_os("moves.out");
+    world.write_actions(moves_os);
+    std::ofstream full_os("full.out");
+    world.write_full(full_os);
 }
 
 template <class T>
-void play_stats(heur_f heur)
+void play_stats(to48::heur_f heur)
 {
-  score_t sum_score = 0;
-  score_t min_score = 1e6;
-  score_t max_score = 0;
-  long min_tilde = 1e6;
-  long max_tilde = 0;
-  int n = 1;
+    to48::score_t sum_score = 0;
+    to48::score_t min_score = 1e6;
+    to48::score_t max_score = 0;
+    long min_tilde = 1e6;
+    long max_tilde = 0;
+    int n = 1;
 
-  while (true)
+    to48::World world(4);
+
+    while (true)
     {
-      heur_nb_evals = 0;
-      grid_t grid = 0;
-      score_t score = 0;
-      T agent{heur};
-      agent.init(grid, score);
+	to48::heur_nb_evals = 0;
+	to48::grid_t grid = 0;
+	to48::score_t score = 0;
+	T agent{heur};
+	agent.init(world);
 
-      while (!grid_is_finished(grid))
+	while (!to48::grid_is_finished(grid))
         {
-          grid = grid_move(grid, score, agent.move_get(grid));
-          agent.after(grid, score);
+	    to48::World::action_t action = agent.action_get(world);
+	    grid = to48::grid_move(grid, score, action);
+	    agent.after(world);
         }
 
-      sum_score += score;
-      if (score > max_score)
-        max_score = score;
-      if (score < min_score)
-        min_score = score;
+	sum_score += score;
+	if (score > max_score)
+	    max_score = score;
+	if (score < min_score)
+	    min_score = score;
 
-      long tilde = std::pow(2, grid_get_max(grid));
-      if (tilde > max_tilde)
-        max_tilde = tilde;
-      if (tilde < min_tilde)
-        min_tilde = tilde;
+	long tilde = std::pow(2, to48::grid_get_max(grid));
+	if (tilde > max_tilde)
+	    max_tilde = tilde;
+	if (tilde < min_tilde)
+	    min_tilde = tilde;
 
-      agent.stats();
+	agent.stats();
 
-      std::cout << "----------------------\n";
-      std::cout << "Run #" << n << ":\n";
-      std::cout << "Score: " << score << "( " << tilde << ")\n"; 
-      std::cout << "Min: " << min_score << " (" << min_tilde << ")\n";
-      std::cout << "Max: " << max_score << " (" << max_tilde << ")\n";
+	std::cout << "----------------------\n";
+	std::cout << "Run #" << n << ":\n";
+	std::cout << "Score: " << score << "( " << tilde << ")\n"; 
+	std::cout << "Min: " << min_score << " (" << min_tilde << ")\n";
+	std::cout << "Max: " << max_score << " (" << max_tilde << ")\n";
 
-      double av = double(sum_score) / n;
-      std::cout << "Average: " << av << "\n";
-      std::cout << "----------------------\n\n";
+	double av = double(sum_score) / n;
+	std::cout << "Average: " << av << "\n";
+	std::cout << "----------------------\n\n";
 
-      ++n;
+	++n;
     }
 
 }
 
 int main(int argc, char** argv)
 {
-  if (argc != 3)
-    return 1;
-  
-  grid_init();
-  heur_init();
-  std::string mode = argv[1];
-  std::string agent = argv[2];
+    if (argc < 3)
+	return 1;
 
-  if (mode == "gui")
+    if (argv[1] == std::string("gridtest"))
+	return task_gridtest(argc, argv);
+  
+    to48::grid_init();
+    to48::heur_init();
+    std::string mode = argv[1];
+    std::string agent = argv[2];
+
+    if (mode == "gui")
     {
-      if (agent == "minmax")
-        play_gui(new MinMaxAI(heur_eval1));
-      else if (agent == "expectimax")
-        play_gui(new ExpectimaxAI(heur_eval1));
-      else
-        return 1;
+	if (agent == "minmax")
+	    play_gui(new to48::MinMaxAI(to48::heur_eval1));
+	else if (agent == "expectimax")
+	    play_gui(new to48::ExpectimaxAI(to48::heur_eval1));
+	else if (agent == "human")
+	    play_gui(new to48::HumanAgent());
+
+	else if (agent == "replay")
+	{
+	    std::ifstream is(argv[3]);
+	    play_gui(new to48::ReplayAgent(to48::World::unserialize_actions(is)));
+	}
+	
+	else
+	    return 1;
     }
 
-  else if (mode == "stats")
+    else if (mode == "stats")
     {
-      if (agent == "minmax")
-        play_stats<MinMaxAI>(heur_eval1);
-      else if (agent == "expectimax")
-        play_stats<ExpectimaxAI>(heur_eval1);
-      else
-        return 1;
+	if (agent == "minmax")
+	    play_stats<to48::MinMaxAI>(to48::heur_eval1);
+	else if (agent == "expectimax")
+	    play_stats<to48::ExpectimaxAI>(to48::heur_eval1);
+	else
+	    return 1;
     }
 
-  else
-    return 1;
+    else
+	return 1;
 
   
 
-  return 0;
+    return 0;
 }
