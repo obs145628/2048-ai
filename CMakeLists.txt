@@ -4,18 +4,11 @@ project(2048AI)
 set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Werror -pedantic -std=c++14 -O3 -DNDEBUG")
 
-include(ExternalProject)
-set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/ext)
 
 
-ExternalProject_Add(git-ai-cpp
-    GIT_REPOSITORY https://github.com/obs145628/ai-cpp.git
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
-)
+add_subdirectory(ext/ai-cpp)
 
-include_directories(${EXTERNAL_INSTALL_LOCATION}/include)
-link_directories(${EXTERNAL_INSTALL_LOCATION}/lib)
-
+include_directories(ext/ai-cpp/include)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake_modules")
 find_package(SFML REQUIRED system window graphics network audio)
@@ -31,5 +24,5 @@ set(SRC
 )
 
 add_executable(2048-ai ${SRC})
-add_dependencies(2048-ai git-ai-cpp)
+add_dependencies(2048-ai ai-cpp)
 target_link_libraries(2048-ai ai-cpp ${SFML_LIBRARIES})
