@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 import ioutils
@@ -31,11 +32,19 @@ class Commander:
     errs: string errors
     res: subprocess object
     '''
-    def run_test(self, cmd, code = None,
+    def run_test(self, cmd, cwd = None, code = None, env = None,
                  has_stdout = None, stdout = None, stdout_file = None,
                  has_stderr = None, stderr = None, stderr_file = None):
 
-        res = subprocess.run(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        if env != None:
+            new_env = os.environ.copy()
+            for key in env.keys():
+                new_env[key] = env[key]
+            env = new_env
+                
+
+        res = subprocess.run(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE,
+                             cwd = cwd, env = env)
         cmd_code = res.returncode
         cmd_stdout = res.stdout
         cmd_stderr = res.stderr

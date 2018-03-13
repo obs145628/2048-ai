@@ -426,4 +426,20 @@ namespace to48
     }
 
 
+    inline void grid_dump(grid_t grid)
+    {
+	std::cout << grid_get(grid, 0);
+	for (index_t i = 1; i < 16; ++i)
+	    std::cout << ' ' << grid_get(grid, i);
+	std::cout << '\n';
+    }
+    
+    inline void grid_dump(grid_t grid, score_t score)
+    {
+	for (index_t i = 0; i < 16; ++i)
+	    std::cout << grid_get(grid, i) << ' ';
+	std::cout << score << '\n';
+    }
+
+
 }

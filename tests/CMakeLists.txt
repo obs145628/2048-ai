@@ -12,5 +12,5 @@ add_custom_target(check
 	PYL_ROOT_DIR=${CMAKE_SOURCE_DIR}
 	python ${CMAKE_SOURCE_DIR}/tests/run-test-suite.py
 	${CMAKE_BINARY_DIR}/tests.json
-	DEPENDS 2048-ai gen_tests
+	DEPENDS 2048-ai gen_tests env2048
 )

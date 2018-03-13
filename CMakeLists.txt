@@ -28,3 +28,4 @@ add_dependencies(2048-ai ai-cpp)
 target_link_libraries(2048-ai ai-cpp ${SFML_LIBRARIES})
 
 add_subdirectory(tests)
+add_subdirectory(pyx)

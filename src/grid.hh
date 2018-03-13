@@ -71,6 +71,9 @@ namespace to48
 			   score_t score, long delta = 0);
     grid_t grid_from_world(const World& world);
 
+    void grid_dump(grid_t grid);
+    void grid_dump(grid_t grid, score_t score);
+
 }
 
 #include "grid.hxx"
