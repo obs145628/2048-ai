@@ -1,4 +1,6 @@
-import pygame
+import contextlib
+with contextlib.redirect_stdout(None):
+    import pygame
 
 _width = 800
 _height = 600
@@ -19,7 +21,7 @@ def _prepare():
 
 def _get_font(name, size):
     _prepare()
-    font = pygame.font.SysFont(name, size)
+    font = pygame.font.SysFont(name, int(size))
     return font
 
 

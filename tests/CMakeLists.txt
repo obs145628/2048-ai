@@ -8,6 +8,8 @@ add_custom_target(gen_tests
 
 add_custom_target(check
 	COMMAND
+	PYTHONPATH=${PROJECT_SOURCE_DIR}
+	LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}
 	PYL_BUILD_DIR=${CMAKE_BINARY_DIR}
 	PYL_ROOT_DIR=${CMAKE_SOURCE_DIR}
 	python ${CMAKE_SOURCE_DIR}/tests/run-test-suite.py

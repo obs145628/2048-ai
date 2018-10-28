@@ -401,6 +401,11 @@ namespace to48
 	return GRID_FAST_MOVES_FNS[move](grid);
     }
 
+    inline bool grid_move_valid(grid_t grid, move_t move)
+    {
+        return grid_fast_move(grid, move) != grid;
+    }
+
 
     inline void grid_update_world(World& world, grid_t grid,
 				  score_t score, long delta)

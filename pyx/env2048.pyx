@@ -1,6 +1,10 @@
 from libcpp cimport bool
 
+import random
+
 __FIX_DEF__ = 0
+
+LEFT = 0
 
 cdef extern from "../src/grid.hh" namespace "to48":
   void grid_init()
@@ -9,6 +13,7 @@ cdef extern from "../src/grid.hh" namespace "to48":
   long unsigned int grid_move(long unsigned int grid, long unsigned int& score, int move);
   bool grid_is_finished(long unsigned int grid)
   long unsigned int grid_set(long unsigned int grid, long unsigned int pos, long unsigned int val)
+  bool grid_move_valid(long unsigned int grid, int move)
   void grid_dump(long unsigned int grid);
   void grid_dump(long unsigned int grid, long unsigned int score);
 
@@ -37,30 +42,29 @@ cdef class Grid:
   def get_cell2(self, i, j):
     return grid_get(self.grid_, i, j)
 
+  def valid_action(self, a):
+    return grid_move_valid(self.grid_, a)
+
+  def actions_list(self):
+    return [a for a in range(4) if grid_move_valid(self.grid_, a)]
+
+  def to_arr(self):
+    res = [0] * 16
+    for i in range(16):
+      res[i] = grid_get(self.grid_, i)
+    return res
+
+  def add_rand_cell(self):
+    cdef int i, val
+    while True:
+       i = random.randint(0, 15)
+       if grid_get(self.grid_, i) == 0: break
+    val = random.randint(1, 2)
+    self.grid_ = grid_set(self.grid_, i, val)
+
   @property
   def score(self): return int(self.score_)
   @score.setter
   def score(self, score): self.score_.y = score
-
-'''
-cdef class MyVector:
-  cdef Vector ptr_
-  def __cinit__(self, double x = 0, double y = 0):
-    self.ptr_ = Vector(x, y)
-  def norm(self):
-    return self.ptr_.norm()
-  def dump(self):
-    self.ptr_.dump()
-
-  @property
-  def x(self): return self.ptr_.x
-  @x.setter
-  def x(self, x): self.ptr_.x = x
-
-  @property
-  def y(self): return self.ptr_.y
-  @y.setter
-  def y(self, y): self.ptr_.y = y
-'''
 
 grid_init()

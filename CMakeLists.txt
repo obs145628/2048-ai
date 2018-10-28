@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 project(2048AI)
 
 set(CMAKE_CXX_COMPILER "g++")
-set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Werror -pedantic -std=c++14 -O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -pedantic -std=c++14 -O3 -DNDEBUG")
 
 
 

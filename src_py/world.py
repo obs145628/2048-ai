@@ -127,6 +127,8 @@ class World:
         square_size = int(GRID_SIZE / n)
         grid_size = int(square_size * n)
 
+        gui.clear()
+        
         for i in range(n):
             for j in range(n):
                 val = self.get_cell(i, j)
@@ -144,6 +146,7 @@ class World:
                               sval,
                               FG_COLORS[val], 'Arial',
                               FONT_SIZE / n)
+        gui.render()
 
     def render_cli(self):
         #TODO
