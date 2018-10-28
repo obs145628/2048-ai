@@ -1,21 +1,27 @@
-# 2048 AI implementation.
+# 2048 AI implementation
 
 
 2048 AI. 2048 grids are represented with 64 bits integers and operations are done using table in order to maximixe perfomance.
 
-## Compilation:
+## Compilation
 
 ```shell
 git submodule init
 git submodule sync
 git submodule update
+python3 -m venv env
+. env/bin/activate
+pip install -r requirements.txt
 mkdir _build
 cd _build
 cmake ..
 make
 ```
 
-## Usage:
+The python environement is for the test suite and the ML implementations
+
+
+## Usage
 ./2048-ai <mode> <agent>
 mode:
 - gui : play one game and display the game in the terminal
@@ -26,13 +32,12 @@ agent:
 - expectimax : Implementation of Expectiminmax + iterative deepening + cache
 
 
-## Test suite :
+## Test suite
 
 Python 3 is required to run the test suite
 
 ```
-python3 -m venv env
-. env/bin/activate
-pip install -r requirements.txt
+
 make check
-````
+```
+
