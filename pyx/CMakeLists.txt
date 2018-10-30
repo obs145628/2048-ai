@@ -27,3 +27,21 @@ add_custom_target(ml_random_ai
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 add_dependencies(ml_random_ai env2048)
+
+add_custom_target(ml_linreg_ai
+  COMMAND
+  PYTHONPATH=${PROJECT_SOURCE_DIR}:${PROJECT_SOURCE_DIR}/src_py
+  LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}
+  python ${PROJECT_SOURCE_DIR}/ml/sl-ai/linreg-ai.py
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+add_dependencies(ml_linreg_ai env2048)
+
+add_custom_target(ml_eval_model
+  COMMAND
+  PYTHONPATH=${PROJECT_SOURCE_DIR}:${PROJECT_SOURCE_DIR}/src_py
+  LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}
+  python ${PROJECT_SOURCE_DIR}/ml/sl-ai/eval-model.py
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+add_dependencies(ml_eval_model env2048)
