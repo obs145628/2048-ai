@@ -41,3 +41,14 @@ Python 3 is required to run the test suite
 make check
 ```
 
+## Supervised learning
+
+Train a model with online supervised learning techniques:
+```shell
+make sl_online_ai
+```
+
+Evaluate a trained model:
+```shell
+MODEL=./ai_model.joblib make ml_eval_model
+```

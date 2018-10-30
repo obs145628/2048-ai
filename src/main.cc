@@ -40,13 +40,16 @@ int task_gridtest(int argc, char** argv)
     }
 }
 
-void play_gui(to48::Agent* agent)
+void play_gui(to48::Agent* agent, bool cli)
 {
     to48::World world(4);
     long delta = 0;
     Timer timer;
     agent->init(world);
-    world.render_gui();
+    if (cli)
+      world.render_cli();
+    else
+      world.render_gui();
     
     while (!world.is_finished())
     {
@@ -56,7 +59,10 @@ void play_gui(to48::Agent* agent)
 	world.take_action(action);
 	world.delta_set(delta);
 	agent->after(world);
-	world.render_gui();
+	if (cli)
+	  world.render_cli();
+	else
+	  world.render_gui();
     }
 
     std::cout << "\n";
@@ -137,19 +143,19 @@ int main(int argc, char** argv)
     std::string mode = argv[1];
     std::string agent = argv[2];
 
-    if (mode == "gui")
+    if (mode == "gui" || mode == "cli")
     {
 	if (agent == "minmax")
-	    play_gui(new to48::MinMaxAI(to48::heur_eval1));
+	  play_gui(new to48::MinMaxAI(to48::heur_eval1), mode == "cli");
 	else if (agent == "expectimax")
-	    play_gui(new to48::ExpectimaxAI(to48::heur_eval1));
+	  play_gui(new to48::ExpectimaxAI(to48::heur_eval1), mode == "cli");
 	else if (agent == "human")
-	    play_gui(new to48::HumanAgent());
+	  play_gui(new to48::HumanAgent(), mode == "cli");
 
 	else if (agent == "replay")
 	{
 	    std::ifstream is(argv[3]);
-	    play_gui(new to48::ReplayAgent(to48::World::unserialize_actions(is)));
+	    play_gui(new to48::ReplayAgent(to48::World::unserialize_actions(is)), mode == "cli");
 	}
 	
 	else
