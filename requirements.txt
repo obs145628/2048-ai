@@ -1,3 +1,4 @@
 Cython==0.27.3
 pygame==1.9.3
 scikit-learn==0.20.0
+xgboost==0.80

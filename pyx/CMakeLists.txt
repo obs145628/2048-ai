@@ -37,6 +37,15 @@ add_custom_target(sl_online_ai
 )
 add_dependencies(sl_online_ai env2048)
 
+add_custom_target(sl_batch_ai
+  COMMAND
+  PYTHONPATH=${PROJECT_SOURCE_DIR}:${PROJECT_SOURCE_DIR}/src_py
+  LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}
+  python ${PROJECT_SOURCE_DIR}/ml/sl-ai/batch-ai.py
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+add_dependencies(sl_batch_ai env2048)
+
 add_custom_target(ml_eval_model
   COMMAND
   PYTHONPATH=${PROJECT_SOURCE_DIR}:${PROJECT_SOURCE_DIR}/src_py
